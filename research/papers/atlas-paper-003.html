@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Atlas Paper 003 examines how trust can be established, verified, limited, revoked, and governed in a person-centric Internet without a universal identifier.">
+  <title>Atlas Paper 003 — Trust in a Person-Centric Internet</title>
+  <link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<header class="site-header">
+  <div class="container nav-wrap">
+    <a class="brand" href="../../"><span class="brand-mark">◎</span><span>Atlas Identity</span></a>
+    <button class="menu-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav id="site-nav" class="site-nav"><a href="../../#problem">Problem</a><a href="../../#research">Research</a><a href="../../#principles">Principles</a><a href="../../#review">Technical Review</a><a href="../../articles/">Articles</a><a href="../../diagrams/">Diagrams</a><a href="../../trust.html">Trust &amp; Data</a><a class="nav-button" href="../../research/">Atlas Papers</a></nav>
+  </div>
+</header>
+
+<main>
+<section class="paper-hero">
+  <div class="paper-shell">
+    <p class="eyebrow">Atlas Papers · Open Research Series</p>
+    <div class="paper-meta">
+      <span>Atlas Paper 003</span>
+      <span>Version 1.0</span>
+      <span>Working proposal</span>
+      <span>September 2026</span>
+    </div>
+    <h1 class="paper-title">Trust in a Person-Centric Internet</h1>
+    <p class="paper-deck">How trust can be established, verified, limited, revoked, and governed when the subject is a person, not an account — without creating a universal identifier.</p>
+
+    <div class="thesis-card">
+      <span class="thesis-label">Research thesis</span>
+      <p>A relying party can trust a person-centric identity assertion the same way it trusts a certificate: by checking a signature against a published key. Trust does not require a shared secret, a live call back to the issuer, or a record joining the person to where the assertion was used.</p>
+    </div>
+  </div>
+</section>
+
+<section class="paper-layout">
+  <aside class="paper-toc" aria-label="Contents">
+    <strong>Contents</strong>
+    <a href="#s01">1. Executive Summary</a>
+    <a href="#s02">2. The Trust Problem, Restated for a Person</a>
+    <a href="#s03">3. Terminology</a>
+    <a href="#s04">4. Trust Establishment</a>
+    <a href="#s05">5. Verification Without a Shared Secret</a>
+    <a href="#s06">6. Unlinkability: Trust Without Correlation</a>
+    <a href="#s07">7. Limiting Trust: Scope, Approval, and Closed Registration</a>
+    <a href="#s08">8. Revocation</a>
+    <a href="#s09">9. Accountability Without a Universal Identifier</a>
+    <a href="#s10">10. Governance</a>
+    <a href="#s11">11. A Rule, Not Yet a Guarantee</a>
+    <a href="#s12">12. What Has Actually Been Verified</a>
+    <a href="#s13">13. Threats to the Trust Model</a>
+    <a href="#s14">14. Falsifiable Hypotheses</a>
+    <a href="#s15">15. Open Questions for Industry Review</a>
+    <a href="#s16">16. Conclusion</a>
+    <a href="#references">17. References</a>
+    <a href="#review">18. Call for Review</a>
+  </aside>
+
+  <article class="paper-body">
+    <section id="s01">
+      <p class="section-number">01</p>
+      <h2>Executive Summary</h2>
+      <p>Atlas Paper 001 asked whether the Internet lacks a person-controlled presence layer. Atlas Paper 002 defined a proposed boundary for that layer without claiming it was built. This paper is narrower and more concrete: it is about trust specifically — how a relying party comes to accept an assertion about a person, how that trust is scoped and limited, how it is withdrawn, and how the system remains accountable without needing a permanent record linking a person to everywhere they have used it.</p>
+      <p>Unlike Papers 001 and 002, this paper is not written entirely ahead of implementation. A credential layer, a published verification key, one independent relying party, and per-relying-party identifiers exist and have been exercised against production infrastructure. Section 12 states plainly what has been verified and what has not, so the distinction between design intent and demonstrated behavior stays visible throughout.</p>
+      <p>The central claim is that trust in this model has three separable parts: a cryptographic part (can the assertion be checked against a key, without asking the issuer), a scope part (what does the assertion actually claim, and to whom), and a discipline part (does the issuer retain anything that could later re-identify who an assertion belonged to). The first part can be made a mathematical property. The third part, as this paper is published, is still a written rule about what the issuing system chooses not to store — not yet a property enforced by the cryptography itself. Section 11 is explicit about that gap and what closes it.</p>
+    </section>
+
+    <section id="s02">
+      <p class="section-number">02</p>
+      <h2>The Trust Problem, Restated for a Person</h2>
+      <p>Most deployed trust models assume an institutional relying party trusts another institution: a browser trusts a certificate authority, a bank trusts a payment network, an enterprise trusts an identity provider. The subject being vouched for is usually a server, a domain, or an employee acting inside an organization's own account system.</p>
+      <p>A person-centric model inverts the usual shape. The subject is an individual who may interact with many unrelated relying parties, none of which the person works for or has a standing account relationship with in the ordinary sense. The question is not "does this organization trust that organization" but "can an independent relying party trust a claim about a person it has never seen before, issued by a party the relying party does not otherwise depend on operationally."</p>
+      <p>This restated problem has a specific failure mode that institutional trust models do not: if the issuer becomes a place where every relying party's trust decision is jointly visible, the issuer becomes exactly the kind of centralized observer of a person's life that Paper 002 identified as the largest design risk. A trust model for a person-centric Internet has to solve verification and avoid recreating that observer in the process of doing it.</p>
+    </section>
+
+    <section id="s03">
+      <p class="section-number">03</p>
+      <h2>Terminology</h2>
+      <p>This paper reuses the terms defined in Atlas Paper 002 (Person, Relationship, Claim, Credential, Relying Party) and adds the following, specific to trust:</p>
+      <p><strong>Assertion.</strong> A signed statement, issued by Atlas, that a specific relying-party-scoped identifier corresponds to a credential Atlas has verified. An assertion is not a claim about the person's name, history, or any attribute beyond the fact of holding a valid credential, unless a relying party has separately negotiated additional claims.</p>
+      <p><strong>Verification.</strong> The act of a relying party checking an assertion's signature against Atlas's published key. Verification does not require contacting Atlas at the time of use.</p>
+      <p><strong>Linkage.</strong> A record, held by any party, that connects two otherwise-separate facts about the same person — most importantly, a record connecting an identity to a network address, or a record connecting the same person's identifiers at two different relying parties.</p>
+      <p><strong>Rule versus guarantee.</strong> A rule is an operational choice about what a system does not do or does not store. A guarantee is a property the cryptography or protocol enforces even if the operator's choices changed. This paper treats the distinction as load-bearing rather than semantic: see Section 11.</p>
+      <p><strong>Closed registration.</strong> A relying party is admitted individually, with its cryptographic setup confirmed in advance, rather than through an open standard any party can integrate against unannounced.</p>
+    </section>
+
+    <section id="s04">
+      <p class="section-number">04</p>
+      <h2>Trust Establishment</h2>
+      <p>Trust begins with a credential rooted in a one-time recovery phrase the person holds, not in any single device. The credential is user-scoped; device sessions sit beneath it, so replacing a device does not require rebuilding trust with every relying party that already accepted the person's identity.</p>
+      <p>Atlas issues assertions signed with an asymmetric key. The public half of that key is published at a stable, well-known location (a JWKS endpoint) that any relying party can fetch independently. Atlas's role in trust establishment ends at signing; it does not participate in, or need to be reachable during, the relying party's verification step.</p>
+      <p>Key rotation is supported without breaking already-issued assertions: an active signing key can rotate while previously retained public keys remain available for verifying assertions signed before the rotation, so a relying party is not forced to re-verify its entire history against a single, permanently fixed key.</p>
+    </section>
+
+    <section id="s05">
+      <p class="section-number">05</p>
+      <h2>Verification Without a Shared Secret</h2>
+      <p>The distinguishing property of this model is that a relying party's trust decision does not depend on a secret shared with Atlas, a live API call to Atlas at verification time, or a session token that could be replayed or that ties the transaction back to an Atlas-operated service. A relying party checks a signature against a public key the same way a browser checks a TLS certificate: independently, offline if needed, and without asking the issuer to vouch for the specific transaction as it happens.</p>
+      <p>This matters for two reasons beyond convenience. First, it removes Atlas from the relying party's uptime and availability dependency graph — a relying party can keep verifying already-issued assertions even during an Atlas outage. Second, and more importantly for the accountability question in Section 9, it means Atlas does not learn, in the ordinary course of verification, which relying party a person is authenticating to at any given moment — because no call to Atlas is required for that step to happen.</p>
+    </section>
+
+    <section id="s06">
+      <p class="section-number">06</p>
+      <h2>Unlinkability: Trust Without Correlation</h2>
+      <p>Each relying party Atlas connects to receives a different, fixed identifier for the same person, derived so that two relying parties cannot match their respective identifiers for that person even if they compare notes directly, and so that Atlas's own issuing system is the only party that could compute the correspondence — a property addressed further in Section 11.</p>
+      <p>This derivation is deliberately not deferred. Paper 002's governance principles noted that changing an identifier scheme after a relying party has integrated means breaking that integration and re-credentialing every affected user. The derivation exists as an interface from the point of the first relying party's integration, with a trivial function acceptable as a first implementation as long as the pairwise property itself is correct from day one.</p>
+      <p>Unlinkability at the identifier layer does not, by itself, prevent correlation through other channels — timing, IP address, device fingerprint, or behavioral pattern can still link two sessions even when the identifiers cannot be matched directly. This paper treats identifier unlinkability as one layer of a broader privacy model, not a complete solution; the same caution Paper 002 raised in its context-separation discussion applies here without modification.</p>
+    </section>
+
+    <section id="s07">
+      <p class="section-number">07</p>
+      <h2>Limiting Trust: Scope, Approval, and Closed Registration</h2>
+      <p>Trust is scoped, not global. An assertion states that a credential is valid and, where negotiated, that specific limited claims hold — it does not carry a person's full profile, and a relying party receiving an assertion for one purpose cannot silently escalate the request into a broader disclosure without the person's participation.</p>
+      <p>Relying parties are approved individually rather than through an open standard anyone can integrate against unannounced. This is a deliberate limitation, not an oversight: it lets each relying party's cryptographic setup — how it fetches and pins the published key, how it handles rotation, what it does with an identifier once it receives one — be confirmed in advance, rather than trusted blind at first contact. The cost of this choice is that Atlas cannot yet claim to be an open, permissionless identity standard; Paper 002's Section 13 governance discussion already anticipated this trade-off between interoperability and verified correctness.</p>
+      <p>Atlas also declines a category of trust entirely: it does not monitor, log, or flag which destinations a person's traffic reaches, and does not attempt to make itself the arbiter of what a relying party or a network should permit. Policing destinations is treated as a separate function that does not belong inside an identity trust system, both because it does not scale safely and because a system positioned to make that judgment is a system that must also keep the records needed to make it.</p>
+    </section>
+
+    <section id="s08">
+      <p class="section-number">08</p>
+      <h2>Revocation</h2>
+      <p>Trust granted is trust that must be revocable without disproportionate cost. Atlas supports revocation at two independent levels: a single device can be revoked without affecting the identity a relying party continues to see for the person's other devices, and an account can be revoked or recovered in full through the self-held recovery phrase, which rotates the credential and invalidates prior sessions.</p>
+      <p>Revocation propagation has a real, previously measured cost worth stating plainly rather than assuming away: an early mesh-layer prototype (Atlas Paper 002, Addendum, Section 21) found that server-side revocation enforcement was immediate, but a revoked device's own local status display continued to show its prior state for a period afterward. The lesson generalizes to the credential layer discussed in this paper: a device's self-reported status is not evidence of its actual trust state, and any future design decision that depends on a device accurately knowing it has been revoked, rather than on the issuer's and relying party's independently verifiable state, would repeat that mistake.</p>
+      <p>Revocation is deliberately asymmetric with recovery. Recovery restores the person's own control after loss; it is not a mechanism by which Atlas, a relying party, or a third party can force disclosure of who was behind a credential. No entity other than the person holding the recovery phrase can trigger recovery, and Atlas keeps no copy of that phrase to do so on anyone's behalf.</p>
+    </section>
+
+    <section id="s09">
+      <p class="section-number">09</p>
+      <h2>Accountability Without a Universal Identifier</h2>
+      <p>A frequent objection to unlinkable, person-controlled identity is that it trades accountability for privacy — that a system unable to correlate a person's activity is a system that cannot be held responsible for abuse. This section states why that objection does not automatically follow, and where it still applies.</p>
+      <p>Accountability in this model is relationship-scoped rather than global. A relying party that issues a pairwise identifier to a person can still apply its own reputation, rate-limiting, and dispute-resolution mechanisms against that identifier within its own relationship — exactly as it could against any account-based identifier today. What the person-centric model removes is a different capability: the ability for a relying party, or an observer compelled to ask multiple relying parties, to assemble one person's activity across services they each separately used. Removing cross-service correlation is not the same as removing within-service accountability.</p>
+      <p>Where the objection does apply, honestly, is at the point closest to the person: an account can be revoked, and how many credentials it requested in a period can be counted, but which past network address a specific person used is not retained beyond a short operational window, and what destinations a person's traffic reached is not logged at all. A regime that wanted that specific kind of accountability — retrospective, per-person destination history — is a regime this design does not support and is not attempting to approximate partially. Section 12 states this as a table rather than prose, because a partial version of "we don't keep that record" is not a coherent middle position to claim.</p>
+    </section>
+
+    <section id="s10">
+      <p class="section-number">10</p>
+      <h2>Governance</h2>
+      <p>Paper 002 argued that governance must separate protocol conformance from authority over people, and that a standards body should define formats without deciding who a person is. This paper's governance position is narrower and specific to trust decisions: the closed relying-party approval process described in Section 7 is itself a governance mechanism, not merely an engineering convenience, and it needs the same public accountability any gatekeeping function needs.</p>
+      <p>Two governance obligations follow directly from operating a closed approval process. First, the criteria for approving a relying party should be public, even while the roster of approved relying parties may reasonably start small. Second, and more urgently while Section 11's gap remains open, the operational rule about what Atlas's issuing system does and does not store needs to be independently checkable, not merely stated — the difference between a claim made in this paper and a claim that has survived outside review is exactly what Section 11 and Section 14 exist to keep separate.</p>
+      <p>This paper does not propose a certification mark, a conformance program, or a governance body beyond Atlas's own operation at this stage of testing, consistent with Paper 002's caution against premature certification. That remains appropriate while there is one operator, one demonstration relying party, and a still-open cryptographic gate; it will need to be revisited before any claim of broader interoperability is made.</p>
+    </section>
+
+    <section id="s11">
+      <p class="section-number">11</p>
+      <h2>A Rule, Not Yet a Guarantee</h2>
+      <p>The unlinkable per-relying-party identifier described in Section 6 already holds as a property: no relying party, alone or comparing notes with another, can derive a person's identifier at a different relying party from the identifier it holds itself. That much is a property of the derivation, not a promise about behavior.</p>
+      <p>What is not yet a property is the question of whether Atlas's own issuing system could compute which person a given identifier belongs to, because it is the system that signed it in the first place. Today, the honest answer is that it could be asked to. The reason that question is unanswerable in practice right now is a written operational rule: the issuing system stores nothing about a credential after handing it out except a count, with no credential value, hash, or linking key retained anywhere. That rule is real and currently in effect, but it is a rule about what the system chooses not to do, not a mathematical guarantee that it cannot.</p>
+      <p>The step that converts the rule into a guarantee is a blind-signature scheme at the issuance layer, reviewed by an outside cryptographer before it ships, so that Atlas becomes structurally unable to compute the correspondence at all rather than merely committed not to look. This is the one outstanding step in Atlas's build order that gates opening beyond invited testers; every other step in the sequence — including the credential layer, the pairwise derivation, and the revocation mechanisms described above — is already closed. This paper will be revised, not silently updated, when that step ships.</p>
+    </section>
+
+    <section id="s12">
+      <p class="section-number">12</p>
+      <h2>What Has Actually Been Verified</h2>
+      <p>Papers 001 and 002 were published ahead of implementation and were explicit about that. This paper is published alongside a running system in closed testing, so it draws a firm line between what has been exercised against real infrastructure and what remains design intent.</p>
+      <div class="definition-grid">
+        <article><h3>Verified</h3><p>A production JWKS endpoint and signed identity assertions; an independent demonstration relying party verifying purely from the published key, with no shared secret and no live call to Atlas; two-key rotation verified against production tokens signed under both the retiring and the active key; pairwise per-relying-party identifiers keyed on the account, live since September 2026; device and account revocation, exercised on a disposable production account; verified-mailbox recovery-code delivery to a real mailbox.</p></article>
+        <article><h3>Verified, live infrastructure</h3><p>The running exit a device connects through admits it by an identity-issued credential and retains no record of which account used which network address — this is a property of the deployed exit software, not only a stated design intent.</p></article>
+        <article><h3>Design intent, not yet built</h3><p>The blind-signature step described in Section 11; a second, independently operated relying party (only one demonstration relying party exists at the time of publication); a public, unattended relying-party approval process (approval is currently manual and small-scale).</p></article>
+      </div>
+      <p>This section should be read as a snapshot, not a permanent record — it will go stale as the system changes. The current authoritative version of these claims is maintained on the <a href="../../trust.html">Trust &amp; Data page</a>, which this paper defers to whenever the two documents might otherwise drift apart.</p>
+    </section>
+
+    <section id="s13">
+      <p class="section-number">13</p>
+      <h2>Threats to the Trust Model</h2>
+      <p>Compelled disclosure at the issuer. Because the linkage gap in Section 11 is currently a rule and not a guarantee, a legal order compelling Atlas to retain and disclose linking data in the future is a live threat until the blind-signature step ships. This paper does not claim immunity from lawful process; it claims that, once that step ships, there will be nothing responsive to disclose because nothing will have been recorded.</p>
+      <p>Relying-party misuse of an identifier. A relying party could attempt to combine its own pairwise identifier with other signals it independently collects — browser fingerprinting, payment metadata, IP address — to build a profile that identifier unlinkability alone does not prevent. This is the same caveat raised in Section 6 and inherited from Paper 002: identifier design solves one channel of correlation, not all of them.</p>
+      <p>Approval-process capture or error. Because relying-party registration is closed and manual, a mistaken or coerced approval could admit a relying party whose cryptographic handling of assertions is unsound, or whose intentions do not match its stated integration. Closed registration reduces this risk relative to an open standard but does not eliminate it, and the governance obligations in Section 10 exist specifically to keep the approval criteria checkable.</p>
+      <p>Recovery-phrase loss or theft. The self-held recovery phrase is both the strongest privacy property in this design and its clearest single point of failure: losing it is unrecoverable by design, and an attacker who obtains it can trigger a real recovery that Atlas has no independent way to distinguish from the legitimate owner acting.</p>
+    </section>
+
+    <section id="s14">
+      <p class="section-number">14</p>
+      <h2>Falsifiable Hypotheses</h2>
+      <p><strong>H1.</strong> A relying party can make a correct trust decision about a person-centric identity assertion using only a published key, with no shared secret and no live call to the issuer. <em>Verified against one demonstration relying party; reject if a second, independently operated relying party cannot replicate this without additional out-of-band trust.</em></p>
+      <p><strong>H2.</strong> Two relying parties cannot derive a shared correlation for the same person from their respective pairwise identifiers alone. <em>Holds as a property of the derivation; not yet tested against two real, independently operated relying parties actively attempting to collude.</em></p>
+      <p><strong>H3.</strong> An identity system can decouple a credential from the network address that used it, on live infrastructure, not only in design documents. <em>Verified on the current egress infrastructure; reject if any table anywhere is later found to join an identity to an address.</em></p>
+      <p><strong>H4.</strong> The gap between an operational no-storage rule and a cryptographic no-computability guarantee can be closed without changing the client-facing credential interface. <em>Open; this is precisely what the blind-signature implementation behind the existing issuance interface is intended to test.</em></p>
+      <p><strong>H5.</strong> Revocation can be enforced server-side and by relying parties without depending on the revoked device's own awareness of its state. <em>Supported by prior mesh-layer evidence (Paper 002, Addendum, Section 21); reject if any future credential-layer design is found to rely on client self-reported revocation state for a security-relevant decision.</em></p>
+    </section>
+
+    <section id="s15">
+      <p class="section-number">15</p>
+      <h2>Open Questions for Industry Review</h2>
+      <ol>
+        <li>Is closed, individually approved relying-party registration a defensible governance model at this stage, or does it concentrate too much unilateral judgment in one operator?</li>
+        <li>What independent mechanism could verify, rather than merely state, that an issuing system stores nothing beyond a count — short of the blind-signature guarantee itself shipping?</li>
+        <li>Which correlation channels outside identifier design (timing, fingerprinting, payment metadata) most urgently need an explicit mitigation before this model could responsibly scale past a handful of relying parties?</li>
+        <li>Does relationship-scoped accountability (Section 9) actually satisfy the abuse-handling needs relying parties have in practice, or does it merely relocate a problem they will ask Atlas to solve for them regardless?</li>
+        <li>What would constitute sufficient outside cryptographic review of the blind-signature step before it should be trusted to gate public launch?</li>
+        <li>Should the criteria for approving a relying party be published before or after the roster of approved relying parties grows past the current single demonstration integration?</li>
+      </ol>
+    </section>
+
+    <section id="s16">
+      <p class="section-number">16</p>
+      <h2>Conclusion</h2>
+      <p>Trust in a person-centric Internet does not require a shared secret, a live check-in with the issuer, or a permanent record joining a person to everywhere they used their identity. What it requires instead is a published key a relying party can verify against independently, an identifier derivation that keeps relying parties from comparing notes, a revocation path that does not depend on the revoked party's cooperation, and an honest account of which of those properties are already mathematical and which are still operational promises.</p>
+      <p>This paper has tried to keep that last distinction visible rather than rounding a rule up to a guarantee for the sake of a cleaner thesis. The credential layer, the published key, the pairwise identifiers, and the decoupling of identity from network address are built and verified against production infrastructure. The step that would make the deepest privacy property in this design a matter of cryptography rather than operator discipline is not yet shipped. Both of those statements are part of the same paper because both are true at the same time.</p>
+    </section>
+
+    <section id="references">
+      <p class="section-number">17</p>
+      <h2>References</h2>
+      <ol class="refs">
+        <li>Atlas Identity, Atlas Paper 001: The Missing Layer of the Internet, Version 1.0, July 2026.</li>
+        <li>Atlas Identity, Atlas Paper 002: Defining the Personal Internet Presence Layer, Version 0.1, July 2026, including Addenda (Sections 21–22).</li>
+        <li>Atlas Identity, Trust &amp; Data disclosure page, updated September 13, 2026.</li>
+        <li>IETF RFC 7515–7519, JSON Web Signature, JSON Web Encryption, JSON Web Key, and JSON Web Token (the JOSE/JWT family).</li>
+        <li>D. Chaum, "Blind Signatures for Untraceable Payments," Advances in Cryptology: Proceedings of Crypto '82, 1983.</li>
+        <li>W3C, Verifiable Credentials Data Model v2.0, W3C Recommendation, May 2025.</li>
+        <li>NIST Special Publication 800-63 Digital Identity Guidelines series.</li>
+        <li>IETF RFC 8446, The Transport Layer Security (TLS) Protocol Version 1.3, August 2018.</li>
+      </ol>
+    </section>
+
+    <section id="review">
+      <p class="section-number">18</p>
+      <h2>Call for Review</h2>
+      <p>This paper makes verifiable claims about a running system alongside open design questions. Reviewers are specifically asked to challenge the verified claims in Section 12 against the live Trust &amp; Data page, not only the open questions in Section 15.</p>
+      <div class="review-cta">
+        <p>Submit technical feedback against Atlas Paper 003.</p>
+        <a class="button button-primary" href="../../review.html?paper=Atlas%20Paper%20003">Send a review</a>
+        <a class="button button-secondary" href="atlas-paper-002.html">Read Atlas Paper 002</a>
+      </div>
+    </section>
+
+    <footer class="paper-status">
+      <p><strong>Document status:</strong> Working proposal · Version 1.0</p>
+      <p><strong>Publication:</strong> Atlas Papers · Atlas Identity</p>
+      <p>This document is intended for public technical discussion and does not represent a production security claim.</p>
+    </footer>
+  </article>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div><a class="brand footer-brand" href="../../"><span class="brand-mark">◎</span><span>Atlas Identity</span></a><p>Open technical research into person-controlled Internet presence.</p></div>
+    <div class="footer-links"><a href="../../trust.html">Trust &amp; Data</a><a href="../../research/">Research</a><a href="../../articles/">Articles</a><a href="../../diagrams/">Diagrams</a><a href="../../review.html">Technical Review</a><a href="../../survey-setup.html">Survey</a></div>
+  </div>
+</footer>
+<script src="../../assets/js/site.js"></script>
+</body>
+</html>
